@@ -1,0 +1,159 @@
+---
+# ============================================================
+# Playbook: Ubuntu Apache Web Server
+# Purpose:
+#   Install, configure, and manage Apache2 on Ubuntu
+#
+# Target:
+#   control_nodes
+#
+# Author:
+#   Bilal Ahmad
+# ============================================================
+
+- name: Install and Configure Apache Web Server
+  hosts: control_nodes
+  become: yes
+
+  vars:
+
+    # HTTP port
+    http_port: 80
+
+    # Apache document root
+    document_root: /var/www/html
+
+  tasks:
+
+    # ========================================================
+    # 1. UPDATE APT CACHE
+    # ========================================================
+
+    - name: Update APT package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags:
+        - packages
+        - apache
+
+
+    # ========================================================
+    # 2. INSTALL APACHE
+    # ========================================================
+
+    - name: Install Apache2
+      apt:
+        name: apache2
+        state: present
+      tags:
+        - packages
+        - apache
+
+
+    # ========================================================
+    # 3. INSTALL ADDITIONAL PACKAGES
+    # ========================================================
+
+    - name: Install additional packages
+      apt:
+        name:
+          - wget
+          - curl
+          - vim
+        state: present
+      tags:
+        - packages
+
+
+    # ========================================================
+    # 4. CREATE CUSTOM INDEX PAGE
+    # ========================================================
+
+    - name: Create custom index.html
+      copy:
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Ansible Ubuntu Web Server</title>
+          </head>
+          <body>
+
+              <h1>Hello from {{ inventory_hostname }}</h1>
+
+              <p>This server was configured by Ansible!</p>
+
+              <p>Server IP: {{ ansible_default_ipv4.address }}</p>
+
+              <p>Managed by: {{ ansible_user }}</p>
+
+          </body>
+          </html>
+
+        dest: "{{ document_root }}/index.html"
+
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+      tags:
+        - content
+
+
+    # ========================================================
+    # 5. CONFIGURE APACHE PORT
+    # ========================================================
+
+    - name: Configure Apache HTTP port
+      lineinfile:
+        path: /etc/apache2/ports.conf
+        regexp: '^Listen '
+        line: "Listen {{ http_port }}"
+        backup: yes
+
+      notify:
+        - restart apache
+
+      tags:
+        - configuration
+
+
+    # ========================================================
+    # 6. ENABLE APACHE
+    # ========================================================
+
+    - name: Ensure Apache is started and enabled
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+
+      tags:
+        - services
+
+
+    # ========================================================
+    # 7. ALLOW HTTP THROUGH UFW
+    # ========================================================
+
+    - name: Allow HTTP through UFW
+      ufw:
+        rule: allow
+        port: "{{ http_port }}"
+        proto: tcp
+
+      tags:
+        - firewall
+
+
+  # ==========================================================
+  # HANDLERS
+  # ==========================================================
+
+  handlers:
+
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted
