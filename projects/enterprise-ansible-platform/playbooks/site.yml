@@ -1,0 +1,50 @@
+---
+- name: Enterprise Linux Fleet Baseline
+  hosts: managed_nodes
+  become: true
+  gather_facts: true
+  serial: 10
+  pre_tasks:
+    - name: Validate supported OS family
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family in ['Debian', 'RedHat']
+        fail_msg: "Unsupported OS family: {{ ansible_os_family }}"
+      tags: [always, baseline]
+  roles:
+    - role: common
+      tags: [baseline, common]
+    - role: hardening
+      tags: [baseline, security]
+    - role: ssh_hardening
+      tags: [security, ssh]
+    - role: firewall
+      tags: [security, firewall]
+
+- name: Configure web tier
+  hosts: web_servers
+  become: true
+  roles:
+    - role: web
+      tags: [web]
+
+- name: Configure application tier
+  hosts: app_servers
+  become: true
+  roles:
+    - role: app
+      tags: [app]
+
+- name: Configure database tier
+  hosts: database_servers
+  become: true
+  roles:
+    - role: database
+      tags: [database]
+
+- name: Configure monitoring hooks
+  hosts: monitoring:backup:app_servers:database_servers:web_servers
+  become: true
+  roles:
+    - role: node_exporter
+      tags: [monitoring]
