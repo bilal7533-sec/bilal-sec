@@ -1,0 +1,9 @@
+---
+- name: daemon_reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart_app
+  ansible.builtin.service:
+    name: enterprise-app
+    state: restarted
