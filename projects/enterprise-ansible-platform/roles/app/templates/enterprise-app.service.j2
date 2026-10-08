@@ -1,0 +1,20 @@
+[Unit]
+Description=Enterprise Demo Application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ app_service_user }}
+Group={{ app_service_user }}
+EnvironmentFile=/etc/enterprise-app/app.env
+WorkingDirectory=/opt/enterprise-app
+ExecStart=/usr/bin/python3 -m http.server {{ app_port }} --bind {{ app_bind_address }}
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/enterprise-app
+
+[Install]
+WantedBy=multi-user.target
