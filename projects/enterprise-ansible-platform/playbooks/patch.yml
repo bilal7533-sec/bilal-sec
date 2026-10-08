@@ -1,0 +1,46 @@
+---
+- name: Rolling OS patching
+  hosts: managed_nodes
+  become: true
+  gather_facts: true
+  serial: 5
+  max_fail_percentage: 20%
+
+  tasks:
+    - name: Refresh Debian package metadata
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      when: ansible_os_family == 'Debian'
+      tags: [patch]
+
+    - name: Upgrade Debian packages
+      ansible.builtin.apt:
+        upgrade: dist
+        autoremove: true
+      when: ansible_os_family == 'Debian'
+      register: debian_patch
+      tags: [patch]
+
+    - name: Refresh RHEL package metadata
+      ansible.builtin.dnf:
+        update_cache: true
+      when: ansible_os_family == 'RedHat'
+      tags: [patch]
+
+    - name: Upgrade RHEL packages
+      ansible.builtin.dnf:
+        name: '*'
+        state: latest
+      when: ansible_os_family == 'RedHat'
+      register: rhel_patch
+      tags: [patch]
+
+    - name: Reboot after patching when explicitly enabled
+      ansible.builtin.reboot:
+        reboot_timeout: 900
+        test_command: whoami
+      when:
+        - patch_reboot_after_change | default(false) | bool
+        - (debian_patch.changed | default(false)) or (rhel_patch.changed | default(false))
+      tags: [patch, reboot]
