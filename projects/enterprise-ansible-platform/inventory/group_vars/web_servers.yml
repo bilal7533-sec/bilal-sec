@@ -1,0 +1,6 @@
+---
+server_tier: web
+allowed_tcp_ports: [22, 80, 443]
+web_document_root:
+  Debian: /var/www/html
+  RedHat: /var/www/html
