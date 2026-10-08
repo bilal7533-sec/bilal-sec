@@ -1,0 +1,3 @@
+---
+server_tier: monitoring
+allowed_tcp_ports: [22, 9090, 9100]
