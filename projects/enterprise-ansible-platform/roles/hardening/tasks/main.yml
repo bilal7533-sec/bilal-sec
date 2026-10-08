@@ -4,6 +4,17 @@
     name: "{{ security_admin_group }}"
     state: present
 
+- name: Ensure automation group exists
+  ansible.builtin.group:
+    name: "{{ automation_group }}"
+    state: present
+
+- name: Add Ansible SSH user to automation group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: "{{ automation_group }}"
+    append: true
+
 - name: Set secure permissions on account databases
   ansible.builtin.file:
     path: "{{ item.path }}"
