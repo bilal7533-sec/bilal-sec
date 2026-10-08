@@ -1,0 +1,39 @@
+---
+- name: Ensure security operations group exists
+  ansible.builtin.group:
+    name: "{{ security_admin_group }}"
+    state: present
+
+- name: Set secure permissions on account databases
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: /etc/passwd, mode: '0644' }
+    - { path: /etc/group, mode: '0644' }
+    - { path: /etc/shadow, mode: '0640' }
+
+- name: Disable legacy telnet socket when present
+  ansible.builtin.service:
+    name: telnet.socket
+    enabled: false
+    state: stopped
+  failed_when: false
+
+- name: Install auditd on Debian
+  ansible.builtin.apt:
+    name: auditd
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: Install auditd on RHEL
+  ansible.builtin.dnf:
+    name: audit
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Enable auditd
+  ansible.builtin.service:
+    name: auditd
+    enabled: true
+    state: started
