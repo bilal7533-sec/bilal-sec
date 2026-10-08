@@ -1,0 +1,7 @@
+---
+server_tier: application
+app_name: enterprise-demo-app
+app_port: 8080
+app_bind_address: "127.0.0.1"
+app_service_user: appsvc
+allowed_tcp_ports: [22, 8080]
