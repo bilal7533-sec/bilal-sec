@@ -1,0 +1,20 @@
+---
+ansible_user: bilal7533
+ansible_python_interpreter: /usr/bin/python3
+
+company_name: "Enterprise Security Lab"
+timezone_name: "Asia/Karachi"
+
+security_admin_group: "securityops"
+automation_group: "automation"
+
+ssh_port: 22
+http_port: 80
+https_port: 443
+
+enable_firewall: true
+enable_ssh_hardening: true
+
+baseline_packages:
+  Debian: [curl, vim, unzip, jq]
+  RedHat: [curl, vim-enhanced, unzip, jq]
