@@ -1,0 +1,12 @@
+---
+- name: Apply security hardening baseline
+  hosts: managed_nodes
+  become: true
+  serial: 10
+  roles:
+    - role: hardening
+      tags: [security]
+    - role: ssh_hardening
+      tags: [security, ssh]
+    - role: firewall
+      tags: [security, firewall]
