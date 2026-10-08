@@ -1,0 +1,43 @@
+---
+- name: Install PostgreSQL on Ubuntu database nodes
+  ansible.builtin.apt:
+    name: [postgresql, postgresql-contrib]
+    state: present
+    update_cache: true
+  when:
+    - ansible_os_family == 'Debian'
+    - inventory_hostname in groups['postgresql_nodes']
+
+- name: Install MariaDB on RHEL database nodes
+  ansible.builtin.dnf:
+    name: mariadb-server
+    state: present
+  when:
+    - ansible_os_family == 'RedHat'
+    - inventory_hostname in groups['mariadb_nodes']
+
+- name: Start PostgreSQL
+  ansible.builtin.service:
+    name: postgresql
+    enabled: true
+    state: started
+  when: inventory_hostname in groups['postgresql_nodes']
+
+- name: Start MariaDB
+  ansible.builtin.service:
+    name: mariadb
+    enabled: true
+    state: started
+  when: inventory_hostname in groups['mariadb_nodes']
+
+- name: Create database backup directory
+  ansible.builtin.file:
+    path: "{{ db_backup_directory }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Report selected database engine
+  ansible.builtin.debug:
+    msg: "Engine={{ 'PostgreSQL' if inventory_hostname in groups['postgresql_nodes'] else 'MariaDB' }}"
