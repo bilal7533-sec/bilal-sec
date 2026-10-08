@@ -1,0 +1,3 @@
+---
+server_tier: backup
+allowed_tcp_ports: [22, 9100]
