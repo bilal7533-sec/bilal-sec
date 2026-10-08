@@ -1,0 +1,4 @@
+---
+server_tier: database
+db_backup_directory: /var/backups/enterprise-db
+allowed_tcp_ports: [22, 5432, 3306]
