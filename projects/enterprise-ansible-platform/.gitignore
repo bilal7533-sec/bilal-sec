@@ -1,0 +1,6 @@
+.ansible_facts/
+*.retry
+*.log
+vault-password-file
+*.vault.yml
+__pycache__/
