@@ -1,0 +1,28 @@
+---
+- name: Enterprise fleet verification
+  hosts: managed_nodes
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Verify supported OS family
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family in ['Debian', 'RedHat']
+        success_msg: "{{ inventory_hostname }} OS={{ ansible_distribution }} {{ ansible_distribution_version }}"
+      tags: [verify]
+
+    - name: Collect service state
+      ansible.builtin.service_facts:
+      tags: [verify]
+
+    - name: Verify application tier intent
+      ansible.builtin.debug:
+        msg: "Application service={{ app_name }} expected_port={{ app_port }}"
+      when: server_tier | default('') == 'application'
+      tags: [verify]
+
+    - name: Print fleet identity
+      ansible.builtin.debug:
+        msg: "HOST={{ inventory_hostname }} ROLE={{ server_tier | default('unknown') }} IP={{ ansible_default_ipv4.address | default('n/a') }}"
+      tags: [verify]
