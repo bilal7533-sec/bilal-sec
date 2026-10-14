@@ -1,0 +1,59 @@
+---
+# Change login shells only after verifying users and executable target shells.
+- name: Modify Managed User Login Shells
+  hosts: local
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/users.yml
+
+  tasks:
+    - name: Check that each target user exists
+      ansible.builtin.command:
+        argv:
+          - getent
+          - passwd
+          - "{{ item.name }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: user_checks
+      changed_when: false
+      failed_when: false
+
+    - name: Stop if any user does not exist
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "User {{ item.item.name }} is missing; run create-users.yml first."
+      loop: "{{ user_checks.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Check that each configured shell exists and is executable
+      ansible.builtin.stat:
+        path: "{{ item.shell }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }} -> {{ item.shell }}"
+      register: shell_checks
+
+    - name: Reject invalid or non-executable shell paths
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.executable
+        fail_msg: "Configured shell {{ item.item.shell }} for {{ item.item.name }} is missing or not executable."
+      loop: "{{ shell_checks.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Apply the requested login shell
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        shell: "{{ item.shell }}"
+        state: present
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      tags: [shells]
