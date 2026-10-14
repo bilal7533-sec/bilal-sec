@@ -1,0 +1,20 @@
+---
+# Create the managed Unix groups before provisioning their member accounts.
+- name: Create Managed Linux Groups
+  hosts: local
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/users.yml
+
+  tasks:
+    - name: Ensure each managed group exists with the lab GID
+      ansible.builtin.group:
+        name: "{{ item.name }}"
+        gid: "{{ item.gid }}"
+        state: present
+        system: false
+      loop: "{{ managed_groups }}"
+      loop_control:
+        label: "{{ item.name }}"
+      tags: [groups]
