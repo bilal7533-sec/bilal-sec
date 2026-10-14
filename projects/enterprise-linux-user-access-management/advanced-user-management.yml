@@ -1,0 +1,68 @@
+---
+# Combined desired-state deployment for Lab 12.
+# Default inventory targets localhost only; review before using remote hosts.
+- name: Enterprise Linux User, Group and Home Directory Management
+  hosts: local
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/users.yml
+
+  tasks:
+    - name: Ensure all managed supplementary groups exist
+      ansible.builtin.group:
+        name: "{{ item.name }}"
+        gid: "{{ item.gid }}"
+        state: present
+        system: false
+      loop: "{{ managed_groups }}"
+      loop_control:
+        label: "{{ item.name }}"
+      tags: [groups]
+
+    - name: Create the managed home-directory parent
+      ansible.builtin.file:
+        path: /opt/users
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      tags: [users, home]
+
+    - name: Provision the declared user accounts
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        comment: "{{ item.comment }}"
+        home: "{{ item.home }}"
+        shell: "{{ item.shell }}"
+        groups: "{{ item.groups | join(',') }}"
+        append: true
+        create_home: true
+        state: present
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      tags: [users]
+
+    - name: Enforce ownership and private home permissions
+      ansible.builtin.file:
+        path: "{{ item.home }}"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0750'
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.home }}"
+      tags: [home]
+
+    - name: Report the declarative configuration scope
+      ansible.builtin.debug:
+        msg:
+          - "Managed users declared: {{ users | length }}"
+          - "Managed supplementary groups declared: {{ managed_groups | length }}"
+          - "Home-directory root: /opt/users"
+          - "Next step: run verify-user-management.yml for independent assertions."
+      changed_when: false
+      tags: [always]
