@@ -1,0 +1,63 @@
+---
+# Move home directories to the desired location and enforce safe permissions.
+- name: Modify Managed User Home Directories
+  hosts: local
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/users.yml
+
+  tasks:
+    - name: Confirm that each configured account exists
+      ansible.builtin.command:
+        argv:
+          - getent
+          - passwd
+          - "{{ item.name }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: user_checks
+      changed_when: false
+      failed_when: false
+
+    - name: Stop if a home-directory target user is missing
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "User {{ item.item.name }} is missing; run create-users.yml first."
+      loop: "{{ user_checks.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Ensure common parent directory exists
+      ansible.builtin.file:
+        path: /opt/users
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Move each existing home to its configured path if needed
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        home: "{{ item.home }}"
+        move_home: true
+        create_home: true
+        state: present
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }} -> {{ item.home }}"
+      tags: [home]
+
+    - name: Set home ownership and permissions
+      ansible.builtin.file:
+        path: "{{ item.home }}"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0750'
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.home }}"
+      tags: [home]
