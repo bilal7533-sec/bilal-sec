@@ -1,0 +1,65 @@
+---
+# Reconcile supplementary group membership to the central desired state.
+# IMPORTANT: append: false can remove memberships not listed in vars/users.yml.
+- name: Modify Managed User Group Membership
+  hosts: local
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/users.yml
+
+  tasks:
+    - name: Confirm that every configured user already exists
+      ansible.builtin.command:
+        argv:
+          - getent
+          - passwd
+          - "{{ item.name }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: user_checks
+      changed_when: false
+      failed_when: false
+
+    - name: Require existing users before changing group memberships
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "User {{ item.item.name }} is missing; run create-users.yml first."
+      loop: "{{ user_checks.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Confirm all desired supplementary groups exist
+      ansible.builtin.command:
+        argv:
+          - getent
+          - group
+          - "{{ item.name }}"
+      loop: "{{ managed_groups }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: group_checks
+      changed_when: false
+      failed_when: false
+
+    - name: Require existing managed groups before applying membership
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "Group {{ item.item.name }} is missing; run create-groups.yml first."
+      loop: "{{ group_checks.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Apply the declared supplementary groups to each user
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        groups: "{{ item.groups | join(',') }}"
+        append: false
+        state: present
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      tags: [groups]
