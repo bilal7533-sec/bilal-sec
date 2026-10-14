@@ -1,0 +1,69 @@
+---
+# Central desired-state data. UIDs/GIDs below are lab examples only.
+# Confirm that the identifiers are free and approved before using elsewhere.
+
+managed_groups:
+  - name: devops
+    gid: 2301
+  - name: developers
+    gid: 2302
+  - name: qa_testers
+    gid: 2303
+  - name: operations
+    gid: 2304
+  - name: security_auditors
+    gid: 2305
+  - name: app_support
+    gid: 2306
+  - name: linux_admins
+    gid: 2307
+
+users:
+  - name: alice
+    uid: 2201
+    comment: "Alice - Platform Engineering"
+    shell: /bin/bash
+    home: /opt/users/alice
+    groups: [devops, linux_admins]
+
+  - name: bob
+    uid: 2202
+    comment: "Bob - Development"
+    shell: /bin/bash
+    home: /opt/users/bob
+    groups: [devops, developers]
+
+  - name: carol
+    uid: 2203
+    comment: "Carol - Quality Assurance"
+    shell: /bin/bash
+    home: /opt/users/carol
+    groups: [qa_testers]
+
+  - name: david
+    uid: 2204
+    comment: "David - Operations"
+    shell: /bin/bash
+    home: /opt/users/david
+    groups: [operations]
+
+  - name: eve
+    uid: 2205
+    comment: "Eve - Security Audit"
+    shell: /bin/bash
+    home: /opt/users/eve
+    groups: [security_auditors]
+
+  - name: frank
+    uid: 2206
+    comment: "Frank - Application Support"
+    shell: /bin/bash
+    home: /opt/users/frank
+    groups: [app_support]
+
+  - name: grace
+    uid: 2207
+    comment: "Grace - Development and QA"
+    shell: /bin/sh
+    home: /opt/users/grace
+    groups: [developers, qa_testers]
