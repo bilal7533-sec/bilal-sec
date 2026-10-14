@@ -1,0 +1,71 @@
+---
+# Provision sample accounts. Run create-groups.yml first.
+- name: Create Managed Linux Users
+  hosts: local
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/users.yml
+
+  tasks:
+    - name: Check that required supplementary groups already exist
+      ansible.builtin.command:
+        argv:
+          - getent
+          - group
+          - "{{ item.name }}"
+      loop: "{{ managed_groups }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: managed_group_checks
+      changed_when: false
+      failed_when: false
+      tags: [users, precheck]
+
+    - name: Stop if any required group is missing
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "Required group {{ item.item.name }} is missing; run create-groups.yml first."
+        success_msg: "Required group {{ item.item.name }} exists."
+      loop: "{{ managed_group_checks.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      tags: [users, precheck]
+
+    - name: Create the common parent for managed user home directories
+      ansible.builtin.file:
+        path: /opt/users
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      tags: [users, home]
+
+    - name: Create each user with declared UID, shell, home and groups
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        comment: "{{ item.comment }}"
+        home: "{{ item.home }}"
+        shell: "{{ item.shell }}"
+        groups: "{{ item.groups | join(',') }}"
+        append: true
+        create_home: true
+        state: present
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      tags: [users]
+
+    - name: Enforce private ownership and least-access home permissions
+      ansible.builtin.file:
+        path: "{{ item.home }}"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0750'
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.home }}"
+      tags: [home]
