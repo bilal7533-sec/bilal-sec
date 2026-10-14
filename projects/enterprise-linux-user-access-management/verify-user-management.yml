@@ -1,0 +1,119 @@
+---
+# Independent post-change assertions for Lab 12.
+# A successful run checks these settings, not the entire SSH/sudo/PAM policy.
+- name: Verify Linux User and Group Management
+  hosts: local
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/users.yml
+
+  tasks:
+    - name: Look up all configured users
+      ansible.builtin.command:
+        argv:
+          - getent
+          - passwd
+          - "{{ item.name }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: user_lookups
+      changed_when: false
+      failed_when: false
+
+    - name: Assert every configured user exists
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "FAIL: expected user {{ item.item.name }} was not found."
+        success_msg: "PASS: user {{ item.item.name }} exists."
+      loop: "{{ user_lookups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Assert each user's home path and shell match desired state
+      ansible.builtin.assert:
+        that:
+          - item.stdout.split(':')[5] == item.item.home
+          - item.stdout.split(':')[6] == item.item.shell
+        fail_msg: "FAIL: home or shell mismatch for {{ item.item.name }}."
+        success_msg: "PASS: home and shell match for {{ item.item.name }}."
+      loop: "{{ user_lookups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Look up all configured groups
+      ansible.builtin.command:
+        argv:
+          - getent
+          - group
+          - "{{ item.name }}"
+      loop: "{{ managed_groups }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: group_lookups
+      changed_when: false
+      failed_when: false
+
+    - name: Assert every configured group exists
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+        fail_msg: "FAIL: expected group {{ item.item.name }} was not found."
+        success_msg: "PASS: group {{ item.item.name }} exists."
+      loop: "{{ group_lookups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Read effective group memberships
+      ansible.builtin.command:
+        argv:
+          - id
+          - -nG
+          - "{{ item.name }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: membership_lookups
+      changed_when: false
+      failed_when: false
+
+    - name: Assert expected group memberships are present
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+          - (item.item.groups | difference(item.stdout.split())) | length == 0
+        fail_msg: "FAIL: one or more expected groups are missing for {{ item.item.name }}."
+        success_msg: "PASS: expected group memberships are present for {{ item.item.name }}."
+      loop: "{{ membership_lookups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Inspect managed home directory metadata
+      ansible.builtin.stat:
+        path: "{{ item.home }}"
+      loop: "{{ users }}"
+      loop_control:
+        label: "{{ item.home }}"
+      register: home_lookups
+
+    - name: Assert home directories have correct owner and mode
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.pw_name == item.item.name
+          - item.stat.mode == '0750'
+        fail_msg: "FAIL: home path, owner or mode is incorrect for {{ item.item.name }}."
+        success_msg: "PASS: home directory for {{ item.item.name }} exists with owner and mode 0750."
+      loop: "{{ home_lookups.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Summarize verification scope
+      ansible.builtin.debug:
+        msg:
+          - "PASS: checked {{ users | length }} configured accounts."
+          - "PASS: checked {{ managed_groups | length }} managed groups."
+          - "PASS: checked home paths, ownership, mode and expected group membership."
+      changed_when: false
