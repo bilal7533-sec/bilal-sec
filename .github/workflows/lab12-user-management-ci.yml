@@ -1,0 +1,46 @@
+name: Lab 12 - Ansible User Management Checks
+
+on:
+  push:
+    paths:
+      - "projects/enterprise-linux-user-access-management/**"
+      - ".github/workflows/lab12-user-management-ci.yml"
+  pull_request:
+    paths:
+      - "projects/enterprise-linux-user-access-management/**"
+      - ".github/workflows/lab12-user-management-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Ansible validation tools
+        run: python -m pip install ansible-core ansible-lint
+
+      - name: Syntax-check all Lab 12 playbooks
+        working-directory: projects/enterprise-linux-user-access-management
+        run: |
+          for playbook in create-groups.yml create-users.yml modify-groups.yml \
+            modify-shells.yml modify-home-dirs.yml advanced-user-management.yml \
+            verify-user-management.yml; do
+            ansible-playbook -i inventory.ini "$playbook" --syntax-check
+          done
+
+      - name: Lint Lab 12 playbooks
+        working-directory: projects/enterprise-linux-user-access-management
+        run: |
+          ansible-lint --profile min create-groups.yml create-users.yml \
+            modify-groups.yml modify-shells.yml modify-home-dirs.yml \
+            advanced-user-management.yml verify-user-management.yml
