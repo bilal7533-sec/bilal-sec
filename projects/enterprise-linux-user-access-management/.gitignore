@@ -1,0 +1,13 @@
+# Ansible transient files
+*.retry
+__pycache__/
+*.py[cod]
+
+# Credentials and private material must never be committed
+.env
+.vault_pass
+vault-password.txt
+*.pem
+*.key
+id_rsa
+id_ed25519
