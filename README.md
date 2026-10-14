@@ -20,6 +20,14 @@ Core engineering areas: Ansible roles, variables and facts, OS-specific automati
 
 Project: https://github.com/bilal7533-sec/bilal-sec/tree/main/projects/enterprise-ansible-platform
 
+## Lab 12 — Enterprise User and Access Management
+
+**Enterprise Linux User, Group & Access Management Automation with Ansible**
+
+Covers data-driven account provisioning, Linux group lifecycle, shell and home-directory management, least-access directory permissions, desired-state reconciliation, independent verification and CI syntax/lint checks.
+
+Project: https://github.com/bilal7533-sec/bilal-sec/tree/main/projects/enterprise-linux-user-access-management
+
 ## Security focus
 
 SOC Analyst | Linux Administration | Vulnerability Assessment | Cloud Security | OT/SCADA Security
